@@ -285,31 +285,59 @@ function approve() {
     try { tg.sendData(code); return; } catch(e) {}
   }
 
-  // Fallback: copy to clipboard
-  navigator.clipboard.writeText(code).then(() => {
-    haptic('success');
-    showToast('✅ Copied! Paste in chat to confirm.');
-    setTimeout(() => { if (tg) tg.close(); }, 1500);
-  }).catch(() => {
-    // Double fallback: show as selectable text
-    showToast('Copy this and paste in chat:\n' + code, true);
-  });
+  // Fallback: show code with copy button
+  showApprovalCode(code);
 }
 
-function showToast(msg, persistent) {
-  let t = document.getElementById('toast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'toast';
-    t.style.cssText = 'position:fixed;bottom:80px;left:16px;right:16px;padding:16px;border-radius:12px;'
-      + 'background:var(--tg-theme-button-color,#3390ec);color:var(--tg-theme-button-text-color,#fff);'
-      + 'font-size:0.95em;text-align:center;z-index:99;white-space:pre-wrap;word-break:break-all;'
-      + 'box-shadow:0 4px 12px rgba(0,0,0,0.2);';
-    document.body.appendChild(t);
+function showApprovalCode(code) {
+  // Full-screen overlay with the code
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:var(--tg-theme-bg-color,#fff);z-index:100;'
+    + 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px;';
+
+  overlay.innerHTML = `
+    <div style="font-size:1.2em;font-weight:600;">✅ Order ready!</div>
+    <div style="font-size:0.85em;color:var(--tg-theme-hint-color,#999);text-align:center;">
+      Copy the code below and paste it in the chat to confirm:
+    </div>
+    <textarea id="codeBox" readonly rows="3" style="width:100%;font-size:0.85em;padding:12px;
+      border-radius:8px;border:1px solid var(--tg-theme-hint-color,#ccc);
+      background:var(--tg-theme-secondary-bg-color,#f5f5f5);
+      color:var(--tg-theme-text-color,#000);resize:none;
+      -webkit-user-select:all;user-select:all;">${code}</textarea>
+    <button onclick="copyCode()" style="width:100%;padding:14px;border:none;border-radius:10px;
+      background:var(--tg-theme-button-color,#3390ec);
+      color:var(--tg-theme-button-text-color,#fff);
+      font-size:1em;font-weight:600;cursor:pointer;">📋 Copy Code</button>
+    <div id="copyStatus" style="font-size:0.8em;color:var(--tg-theme-hint-color,#999);">
+      Tap the code to select it, or use the button above
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Auto-select the text
+  setTimeout(() => {
+    const box = document.getElementById('codeBox');
+    box.focus();
+    box.select();
+  }, 100);
+}
+
+function copyCode() {
+  const box = document.getElementById('codeBox');
+  const status = document.getElementById('copyStatus');
+  box.select();
+  box.setSelectionRange(0, 99999);
+
+  // Try multiple copy methods
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch(e) {}
+  if (!ok) {
+    try { navigator.clipboard.writeText(box.value).then(() => { ok = true; }); } catch(e) {}
   }
-  t.textContent = msg;
-  t.style.display = 'block';
-  if (!persistent) setTimeout(() => t.style.display = 'none', 3000);
+
+  status.textContent = ok ? '✅ Copied! Go back to chat and paste.' : 'Select the text above and copy manually.';
+  haptic('success');
 }
 
 function esc(s) {
