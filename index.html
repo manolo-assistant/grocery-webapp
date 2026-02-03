@@ -9,10 +9,12 @@
   body {
     font-family: -apple-system, sans-serif;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
+    gap: 16px;
     background: var(--tg-theme-bg-color, #fff);
     color: var(--tg-theme-text-color, #000);
   }
@@ -26,9 +28,29 @@
     cursor: pointer;
   }
   button:active { opacity: 0.8; }
+  #status { font-size: 0.9em; opacity: 0.6; }
 </style>
 </head>
 <body>
-<button onclick="Telegram.WebApp.sendData('ping')">🏓 Ping</button>
+<button onclick="doPing()">🏓 Ping</button>
+<div id="status">Ready</div>
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) tg.ready();
+  
+  function doPing() {
+    const el = document.getElementById('status');
+    try {
+      if (tg) {
+        tg.sendData('pong');
+        el.textContent = '✅ sendData("pong") called!';
+      } else {
+        el.textContent = '❌ Telegram.WebApp not available';
+      }
+    } catch(e) {
+      el.textContent = '❌ Error: ' + e.message;
+    }
+  }
+</script>
 </body>
 </html>
