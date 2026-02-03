@@ -264,30 +264,53 @@ function haptic(style) {
 }
 
 // ── Approve ────────────────────────────────────────────
-function approve() {
-  // Build bitmask: 1 = keep, 0 = drop
-  const mask = items.map(it => (it.on && it.q > 0) ? '1' : '0').join('');
+const WEBHOOK = 'https://ubuntu-4gb-hel1-1-1.taildf35a4.ts.net/grocery';
 
-  // Quantity changes vs original (only for kept items)
-  const qc = [];
-  items.forEach((it, idx) => {
-    if (it.on && it.q > 0 && it.q !== origQty[idx]) {
-      qc.push(idx + 'x' + it.q);
+function approve() {
+  const approved = items
+    .filter(it => it.on && it.q > 0)
+    .map(it => ({ i: it.i, n: it.n, p: it.p, q: it.q }));
+
+  if (!approved.length) return;
+
+  const total = approved.reduce((s, it) => s + it.p * it.q, 0);
+  const payload = { items: approved, total: +total.toFixed(2), ts: Date.now() };
+
+  // Show sending state
+  if (tg) {
+    tg.MainButton.setText('Sending…');
+    tg.MainButton.showProgress();
+  }
+
+  fetch(WEBHOOK, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.ok) {
+      if (tg) {
+        tg.MainButton.hideProgress();
+        tg.MainButton.setText('✅ Sent!');
+        haptic('success');
+        setTimeout(() => tg.close(), 800);
+      } else {
+        alert('Approved! ' + JSON.stringify(payload));
+      }
+    } else {
+      throw new Error(res.error || 'Server error');
+    }
+  })
+  .catch(err => {
+    if (tg) {
+      tg.MainButton.hideProgress();
+      tg.MainButton.setText('❌ Failed — tap to retry');
+      haptic('error');
+    } else {
+      alert('Error: ' + err.message);
     }
   });
-
-  // Compact param: ga_<bitmask>[_<qty changes>]
-  // Allowed chars in /start param: A-Za-z0-9_-
-  let param = 'ga-' + mask;
-  if (qc.length) param += '-' + qc.join('-');
-
-  if (hasTg) {
-    // Deep link sends /start <param> to the bot
-    tg.openTelegramLink('https://t.me/' + BOT + '?start=' + param);
-  } else {
-    console.log('Approval param:', param);
-    alert('Approval code:\n' + param);
-  }
 }
 
 function esc(s) {
