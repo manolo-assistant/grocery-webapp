@@ -7,16 +7,12 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--tg-theme-bg-color, #fff);
   color: var(--tg-theme-text-color, #000);
-  padding-bottom: 100px;
-  -webkit-user-select: none;
-  user-select: none;
+  padding-bottom: 140px;
 }
-
 .header {
   position: sticky; top: 0;
   background: var(--tg-theme-bg-color, #fff);
@@ -25,108 +21,83 @@ body {
   z-index: 10;
 }
 .header h1 { font-size: 1.25em; }
-.header .summary {
-  font-size: 0.85em;
-  color: var(--tg-theme-hint-color, #999);
-  margin-top: 4px;
-}
+.header .summary { font-size: 0.85em; color: var(--tg-theme-hint-color, #999); margin-top: 4px; }
 .toggle-all {
-  display: inline-block; margin-top: 8px;
-  font-size: 0.8em;
-  color: var(--tg-theme-link-color, #3390ec);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  display: inline-block; margin-top: 8px; font-size: 0.8em;
+  color: var(--tg-theme-link-color, #3390ec); cursor: pointer;
 }
-
 .items { padding: 4px 0; }
-
 .item {
   display: flex; align-items: center;
   padding: 10px 16px; gap: 10px;
   border-bottom: 1px solid rgba(128,128,128,0.08);
   transition: opacity 0.2s;
-  -webkit-tap-highlight-color: transparent;
 }
 .item.off { opacity: 0.35; }
-
 .check {
-  width: 22px; height: 22px;
-  border-radius: 50%;
+  width: 22px; height: 22px; border-radius: 50%;
   border: 2px solid var(--tg-theme-button-color, #3390ec);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
 }
-.check:active { transform: scale(0.9); }
 .check.on { background: var(--tg-theme-button-color, #3390ec); }
-.check.on::after {
-  content: '✓';
-  color: var(--tg-theme-button-text-color, #fff);
-  font-size: 13px; font-weight: 700;
-}
-
+.check.on::after { content: '✓'; color: var(--tg-theme-button-text-color, #fff); font-size: 13px; font-weight: 700; }
 .info { flex: 1; min-width: 0; }
-.info .name {
-  font-size: 0.9em; line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.info .unit-price {
-  font-size: 0.75em;
-  color: var(--tg-theme-hint-color, #999);
-  margin-top: 2px;
-}
-
-.qty {
-  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
-}
+.info .name { font-size: 0.9em; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.info .unit-price { font-size: 0.75em; color: var(--tg-theme-hint-color, #999); margin-top: 2px; }
+.qty { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .qty button {
-  width: 26px; height: 26px;
-  border-radius: 50%;
+  width: 26px; height: 26px; border-radius: 50%;
   border: 1.5px solid var(--tg-theme-button-color, #3390ec);
-  background: transparent;
-  color: var(--tg-theme-button-color, #3390ec);
-  font-size: 15px; font-weight: 600;
-  cursor: pointer;
+  background: transparent; color: var(--tg-theme-button-color, #3390ec);
+  font-size: 15px; font-weight: 600; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: transform 0.1s, opacity 0.15s;
-  -webkit-tap-highlight-color: transparent;
 }
-.qty button:active { transform: scale(0.9); }
 .qty button.dim { opacity: 0.3; }
-.qty .val {
-  min-width: 18px; text-align: center;
-  font-weight: 600; font-size: 0.9em;
-}
+.qty .val { min-width: 18px; text-align: center; font-weight: 600; font-size: 0.9em; }
+.line-total { font-weight: 600; font-size: 0.9em; min-width: 48px; text-align: right; flex-shrink: 0; }
 
-.line-total {
-  font-weight: 600; font-size: 0.9em;
-  min-width: 48px; text-align: right; flex-shrink: 0;
-}
-
-.empty {
-  text-align: center; padding: 80px 20px;
-  color: var(--tg-theme-hint-color, #999);
-  font-size: 1.1em;
-}
-
-.fallback-btn {
-  display: none;
+/* Bottom bar with approve button — always visible */
+.bottom-bar {
   position: fixed; bottom: 0; left: 0; right: 0;
-  padding: 12px 16px;
+  padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom));
   background: var(--tg-theme-bg-color, #fff);
   border-top: 1px solid rgba(128,128,128,0.15);
-  z-index: 20;
+  z-index: 50;
 }
-.fallback-btn button {
+.btn-approve {
   width: 100%; padding: 14px; border: none; border-radius: 10px;
   background: var(--tg-theme-button-color, #3390ec);
   color: var(--tg-theme-button-text-color, #fff);
   font-size: 1em; font-weight: 600; cursor: pointer;
 }
-body.no-tg .fallback-btn { display: block; }
+
+/* Copy overlay — hidden by default */
+#copyScreen {
+  display: none;
+  position: fixed; inset: 0;
+  background: var(--tg-theme-bg-color, #fff);
+  z-index: 200;
+  flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px; gap: 16px;
+}
+#copyScreen.show { display: flex; }
+#copyScreen h2 { font-size: 1.3em; }
+#copyScreen .hint { font-size: 0.85em; color: var(--tg-theme-hint-color, #999); text-align: center; }
+#codeBox {
+  width: 100%; font-size: 0.85em; padding: 12px;
+  border-radius: 8px; border: 1px solid var(--tg-theme-hint-color, #ccc);
+  background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+  color: var(--tg-theme-text-color, #000); resize: none;
+  -webkit-user-select: all; user-select: all;
+}
+.btn-copy {
+  width: 100%; padding: 14px; border: none; border-radius: 10px;
+  background: var(--tg-theme-button-color, #3390ec);
+  color: var(--tg-theme-button-text-color, #fff);
+  font-size: 1em; font-weight: 600; cursor: pointer;
+}
+#copyStatus { font-size: 0.8em; color: var(--tg-theme-hint-color, #999); }
 </style>
 </head>
 <body>
@@ -139,215 +110,95 @@ body.no-tg .fallback-btn { display: block; }
 
 <div class="items" id="items"></div>
 
-<div class="fallback-btn">
-  <button id="fallbackApprove" onclick="approve()">Approve</button>
+<!-- Always-visible approve button -->
+<div class="bottom-bar">
+  <button class="btn-approve" id="approveBtn" onclick="approve()">Approve</button>
+</div>
+
+<!-- Pre-rendered copy screen -->
+<div id="copyScreen">
+  <h2>✅ Order ready!</h2>
+  <p class="hint">Copy this code and paste it in the chat:</p>
+  <textarea id="codeBox" readonly rows="3"></textarea>
+  <button class="btn-copy" onclick="copyCode()">📋 Copy Code</button>
+  <div id="copyStatus">Tap the code to select it, or use the button</div>
+  <button class="btn-copy" onclick="location.reload()" style="background:transparent;color:var(--tg-theme-link-color,#3390ec);margin-top:8px;">← Back to list</button>
 </div>
 
 <script>
 const tg = window.Telegram?.WebApp;
 const hasTg = !!(tg && tg.initData);
-const BOT = 'Manolo_Assistant_bot';
+if (tg) tg.ready();
+if (hasTg) tg.expand();
 
-if (hasTg) {
-  tg.ready();
-  tg.expand();
-  tg.BackButton.show();
-  tg.BackButton.onClick(() => tg.close());
-} else {
-  document.body.classList.add('no-tg');
-  if (tg) tg.ready();
-}
-
-// ── Parse items from URL ──────────────────────────────
-let items = [];
-let origQty = [];
-
+let items = [], origQty = [];
 try {
   const d = new URLSearchParams(location.search).get('d');
   if (d) {
-    const json = atob(d.replace(/-/g, '+').replace(/_/g, '/'));
-    items = JSON.parse(json);
-    items.forEach(it => {
-      if (it.on === undefined) it.on = true;
-      if (!it.q || it.q < 0) it.q = 1;
-    });
+    items = JSON.parse(atob(d.replace(/-/g, '+').replace(/_/g, '/')));
+    items.forEach(it => { if (it.on === undefined) it.on = true; if (!it.q || it.q < 0) it.q = 1; });
     origQty = items.map(it => it.q);
   }
-} catch(e) {
-  console.error('Parse error:', e);
-}
+} catch(e) { console.error(e); }
 
-// ── Render ─────────────────────────────────────────────
 function render() {
   const el = document.getElementById('items');
   const sum = document.getElementById('summary');
   const tog = document.getElementById('toggleAll');
-
-  if (!items.length) {
-    el.innerHTML = '<div class="empty">No items in list.<br>Open via the bot to load a list.</div>';
-    sum.textContent = 'Empty list';
-    tog.style.display = 'none';
-    if (tg) tg.MainButton.hide();
-    return;
-  }
-
+  const btn = document.getElementById('approveBtn');
+  if (!items.length) { el.innerHTML = '<div style="text-align:center;padding:60px;opacity:0.5">No items</div>'; return; }
   let html = '', count = 0, total = 0;
-
   items.forEach((it, i) => {
-    const active = it.on && it.q > 0;
-    const lt = active ? it.p * it.q : 0;
-    if (active) { count++; total += lt; }
-
-    html += `<div class="item ${active ? '' : 'off'}">
-      <div class="check ${active ? 'on' : ''}" onclick="toggle(${i})"></div>
-      <div class="info">
-        <div class="name">${esc(it.n)}</div>
-        <div class="unit-price">$${it.p.toFixed(2)}${it.q > 1 ? ' × ' + it.q : ''}</div>
-      </div>
+    const on = it.on && it.q > 0, lt = on ? it.p * it.q : 0;
+    if (on) { count++; total += lt; }
+    html += `<div class="item ${on?'':'off'}">
+      <div class="check ${on?'on':''}" onclick="toggle(${i})"></div>
+      <div class="info"><div class="name">${esc(it.n)}</div>
+        <div class="unit-price">$${it.p.toFixed(2)}${it.q>1?' × '+it.q:''}</div></div>
       <div class="qty">
-        <button class="${it.q <= 0 ? 'dim' : ''}" onclick="qtyDelta(${i},-1)">−</button>
+        <button class="${it.q<=0?'dim':''}" onclick="qtyDelta(${i},-1)">−</button>
         <span class="val">${it.q}</span>
-        <button class="${it.q >= 20 ? 'dim' : ''}" onclick="qtyDelta(${i},1)">+</button>
+        <button class="${it.q>=20?'dim':''}" onclick="qtyDelta(${i},1)">+</button>
       </div>
-      <div class="line-total">${active ? '$' + lt.toFixed(2) : '—'}</div>
-    </div>`;
+      <div class="line-total">${on?'$'+lt.toFixed(2):'—'}</div></div>`;
   });
-
   el.innerHTML = html;
   sum.textContent = `${count} of ${items.length} items · $${total.toFixed(2)}`;
-
-  const allOn = items.every(it => it.on && it.q > 0);
-  tog.textContent = allOn ? 'Deselect all' : 'Select all';
-
-  if (hasTg) {
-    if (count > 0) {
-      tg.MainButton.setText(`Approve · $${total.toFixed(2)}`);
-      tg.MainButton.show();
-    } else {
-      tg.MainButton.hide();
-    }
-  }
-
-  const fb = document.getElementById('fallbackApprove');
-  if (fb) fb.textContent = count > 0 ? `Approve · $${total.toFixed(2)}` : 'Nothing selected';
+  tog.textContent = items.every(it => it.on && it.q > 0) ? 'Deselect all' : 'Select all';
+  btn.textContent = count > 0 ? `Approve · $${total.toFixed(2)}` : 'Nothing selected';
+  btn.disabled = count === 0;
 }
 
-// ── Actions ────────────────────────────────────────────
-function toggle(i) {
-  if (!items[i].on && items[i].q === 0) items[i].q = 1;
-  items[i].on = !items[i].on;
-  haptic('light');
-  render();
-}
+function toggle(i) { if (!items[i].on && items[i].q===0) items[i].q=1; items[i].on=!items[i].on; render(); }
+function qtyDelta(i,d) { const n=items[i].q+d; if(n<0||n>20)return; items[i].q=n; if(n===0)items[i].on=false; if(n>0&&!items[i].on)items[i].on=true; render(); }
+function toggleAll() { const all=items.every(it=>it.on&&it.q>0); items.forEach(it=>{it.on=!all;if(!all&&it.q===0)it.q=1;}); render(); }
 
-function qtyDelta(i, d) {
-  const nq = items[i].q + d;
-  if (nq < 0 || nq > 20) return;
-  items[i].q = nq;
-  if (nq === 0) items[i].on = false;
-  if (nq > 0 && !items[i].on) items[i].on = true;
-  haptic('light');
-  render();
-}
-
-function toggleAll() {
-  const allOn = items.every(it => it.on && it.q > 0);
-  items.forEach(it => {
-    it.on = !allOn;
-    if (!allOn && it.q === 0) it.q = 1;
-  });
-  haptic('medium');
-  render();
-}
-
-function haptic(style) {
-  try { tg?.HapticFeedback?.impactOccurred(style); } catch(e) {}
-}
-
-// ── Approve ────────────────────────────────────────────
 function approve() {
-  const approved = items
-    .filter(it => it.on && it.q > 0)
-    .map(it => ({ i: it.i, q: it.q }));
-
+  const approved = items.filter(it => it.on && it.q > 0);
   if (!approved.length) return;
+  const total = approved.reduce((s,it) => s + it.p * it.q, 0);
+  const code = 'GA:' + approved.map(a => a.q===1 ? a.i : a.i+'x'+a.q).join(',') + '=$' + total.toFixed(2);
 
-  const total = approved.reduce((s, it) => {
-    const orig = items.find(o => o.i === it.i);
-    return s + (orig ? orig.p * it.q : 0);
-  }, 0);
+  // Show the pre-rendered copy screen
+  document.getElementById('codeBox').value = code;
+  document.getElementById('copyScreen').classList.add('show');
+  document.getElementById('copyStatus').textContent = 'Tap the code to select it, or use the button';
 
-  // Compact code: GA:id×qty,id×qty,...=$total
-  const code = 'GA:' + approved.map(a => a.q === 1 ? a.i : a.i + 'x' + a.q).join(',')
-    + '=$' + total.toFixed(2);
-
-  // Always show copy overlay (sendData is unreliable across contexts)
-  showApprovalCode(code);
-}
-
-function showApprovalCode(code) {
-  // Full-screen overlay with the code
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:var(--tg-theme-bg-color,#fff);z-index:100;'
-    + 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px;';
-
-  overlay.innerHTML = `
-    <div style="font-size:1.2em;font-weight:600;">✅ Order ready!</div>
-    <div style="font-size:0.85em;color:var(--tg-theme-hint-color,#999);text-align:center;">
-      Copy the code below and paste it in the chat to confirm:
-    </div>
-    <textarea id="codeBox" readonly rows="3" style="width:100%;font-size:0.85em;padding:12px;
-      border-radius:8px;border:1px solid var(--tg-theme-hint-color,#ccc);
-      background:var(--tg-theme-secondary-bg-color,#f5f5f5);
-      color:var(--tg-theme-text-color,#000);resize:none;
-      -webkit-user-select:all;user-select:all;">${code}</textarea>
-    <button onclick="copyCode()" style="width:100%;padding:14px;border:none;border-radius:10px;
-      background:var(--tg-theme-button-color,#3390ec);
-      color:var(--tg-theme-button-text-color,#fff);
-      font-size:1em;font-weight:600;cursor:pointer;">📋 Copy Code</button>
-    <div id="copyStatus" style="font-size:0.8em;color:var(--tg-theme-hint-color,#999);">
-      Tap the code to select it, or use the button above
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  // Auto-select the text
-  setTimeout(() => {
-    const box = document.getElementById('codeBox');
-    box.focus();
-    box.select();
-  }, 100);
+  // Auto-select
+  setTimeout(() => { const b = document.getElementById('codeBox'); b.focus(); b.select(); }, 200);
 }
 
 function copyCode() {
   const box = document.getElementById('codeBox');
   const status = document.getElementById('copyStatus');
-  box.select();
-  box.setSelectionRange(0, 99999);
-
-  // Try multiple copy methods
+  box.focus(); box.select(); box.setSelectionRange(0, 99999);
   let ok = false;
   try { ok = document.execCommand('copy'); } catch(e) {}
-  if (!ok) {
-    try { navigator.clipboard.writeText(box.value).then(() => { ok = true; }); } catch(e) {}
-  }
-
-  status.textContent = ok ? '✅ Copied! Go back to chat and paste.' : 'Select the text above and copy manually.';
-  haptic('success');
+  if (!ok) { try { navigator.clipboard.writeText(box.value); ok = true; } catch(e) {} }
+  status.textContent = ok ? '✅ Copied! Close this and paste in chat.' : 'Long-press the text above to copy manually.';
 }
 
-function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-// ── Wire up MainButton ─────────────────────────────────
-if (hasTg) {
-  tg.MainButton.onClick(approve);
-  tg.MainButton.color = tg.themeParams?.button_color || '#3390ec';
-  tg.MainButton.textColor = tg.themeParams?.button_text_color || '#fff';
-}
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
 render();
 </script>
