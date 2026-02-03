@@ -281,12 +281,7 @@ function approve() {
   const code = 'GA:' + approved.map(a => a.q === 1 ? a.i : a.i + 'x' + a.q).join(',')
     + '=$' + total.toFixed(2);
 
-  // Try sendData first (works with keyboard/menu buttons)
-  if (tg) {
-    try { tg.sendData(code); return; } catch(e) {}
-  }
-
-  // Fallback: show code with copy button
+  // Always show copy overlay (sendData is unreliable across contexts)
   showApprovalCode(code);
 }
 
