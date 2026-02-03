@@ -179,12 +179,24 @@ function approve() {
   const total = approved.reduce((s,it) => s + it.p * it.q, 0);
   const code = 'GA:' + approved.map(a => a.q===1 ? a.i : a.i+'x'+a.q).join(',') + '=$' + total.toFixed(2);
 
-  // Show the pre-rendered copy screen
+  // Try sendData first — if it works, webapp closes instantly
+  if (tg && tg.initData) {
+    try {
+      tg.sendData(code);
+      // If still here after 1s, sendData didn't close the app → fallback
+      setTimeout(() => showCopyScreen(code), 1000);
+      return;
+    } catch(e) {}
+  }
+
+  // Fallback: copy screen
+  showCopyScreen(code);
+}
+
+function showCopyScreen(code) {
   document.getElementById('codeBox').value = code;
   document.getElementById('copyScreen').classList.add('show');
   document.getElementById('copyStatus').textContent = 'Tap the code to select it, or use the button';
-
-  // Auto-select
   setTimeout(() => { const b = document.getElementById('codeBox'); b.focus(); b.select(); }, 200);
 }
 
