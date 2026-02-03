@@ -2,55 +2,307 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grocery List</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Order Review</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  body {
-    font-family: -apple-system, sans-serif;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    gap: 16px;
-    background: var(--tg-theme-bg-color, #fff);
-    color: var(--tg-theme-text-color, #000);
-  }
-  button {
-    font-size: 1.2em;
-    padding: 16px 48px;
-    border: none;
-    border-radius: 12px;
-    background: var(--tg-theme-button-color, #3390ec);
-    color: var(--tg-theme-button-text-color, #fff);
-    cursor: pointer;
-  }
-  button:active { opacity: 0.8; }
-  #status { font-size: 0.9em; opacity: 0.6; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--tg-theme-bg-color, #fff);
+  color: var(--tg-theme-text-color, #000);
+  padding-bottom: 100px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  background: var(--tg-theme-bg-color, #fff);
+  padding: 16px;
+  border-bottom: 1px solid rgba(128,128,128,0.15);
+  z-index: 10;
+}
+
+.header h1 { font-size: 1.25em; }
+
+.header .summary {
+  font-size: 0.85em;
+  color: var(--tg-theme-hint-color, #999);
+  margin-top: 4px;
+}
+
+.toggle-all {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.8em;
+  color: var(--tg-theme-link-color, #3390ec);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.items { padding: 4px 0; }
+
+.item {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 10px;
+  border-bottom: 1px solid rgba(128,128,128,0.08);
+  transition: opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.item.off { opacity: 0.35; }
+
+.check {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--tg-theme-button-color, #3390ec);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.check:active { transform: scale(0.9); }
+.check.on {
+  background: var(--tg-theme-button-color, #3390ec);
+}
+.check.on::after {
+  content: '✓';
+  color: var(--tg-theme-button-text-color, #fff);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.info { flex: 1; min-width: 0; }
+.info .name {
+  font-size: 0.9em;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.info .unit-price {
+  font-size: 0.75em;
+  color: var(--tg-theme-hint-color, #999);
+  margin-top: 2px;
+}
+
+.qty {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.qty button {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--tg-theme-button-color, #3390ec);
+  background: transparent;
+  color: var(--tg-theme-button-color, #3390ec);
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.qty button:active { transform: scale(0.9); }
+.qty .val {
+  min-width: 18px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.line-total {
+  font-weight: 600;
+  font-size: 0.9em;
+  min-width: 48px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--tg-theme-hint-color, #999);
+  font-size: 1.1em;
+}
+
+/* Fallback approve button for non-Telegram contexts */
+.fallback-btn {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 12px 16px;
+  background: var(--tg-theme-bg-color, #fff);
+  border-top: 1px solid rgba(128,128,128,0.15);
+  z-index: 20;
+}
+.fallback-btn button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--tg-theme-button-color, #3390ec);
+  color: var(--tg-theme-button-text-color, #fff);
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+}
+body.no-tg .fallback-btn { display: block; }
 </style>
 </head>
 <body>
-<button onclick="doPing()">🏓 Ping</button>
-<div id="status">Ready</div>
+
+<div class="header">
+  <h1>🛒 Order Review</h1>
+  <div class="summary" id="summary">Loading…</div>
+  <span class="toggle-all" id="toggleAll" onclick="toggleAll()">Deselect all</span>
+</div>
+
+<div class="items" id="items"></div>
+
+<div class="fallback-btn">
+  <button id="fallbackApprove" onclick="approve()">Approve</button>
+</div>
+
 <script>
-  const tg = window.Telegram?.WebApp;
-  if (tg) tg.ready();
-  
-  function doPing() {
-    const el = document.getElementById('status');
-    try {
-      if (tg) {
-        tg.sendData('pong');
-        el.textContent = '✅ sendData("pong") called!';
-      } else {
-        el.textContent = '❌ Telegram.WebApp not available';
-      }
-    } catch(e) {
-      el.textContent = '❌ Error: ' + e.message;
+const tg = window.Telegram?.WebApp;
+const hasTg = !!(tg && tg.initData);
+
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.BackButton.show();
+  tg.BackButton.onClick(() => tg.close());
+} else {
+  document.body.classList.add('no-tg');
+}
+
+// ── Parse items from URL ──────────────────────────────
+let items = [];
+try {
+  const d = new URLSearchParams(location.search).get('d');
+  if (d) {
+    const json = atob(d.replace(/-/g, '+').replace(/_/g, '/'));
+    items = JSON.parse(json);
+    items.forEach(it => {
+      if (it.on === undefined) it.on = true;
+      if (!it.q || it.q < 1) it.q = 1;
+    });
+  }
+} catch(e) {
+  console.error('Parse error:', e);
+}
+
+// ── Render ─────────────────────────────────────────────
+function render() {
+  const el = document.getElementById('items');
+  const sum = document.getElementById('summary');
+  const tog = document.getElementById('toggleAll');
+
+  if (!items.length) {
+    el.innerHTML = '<div class="empty">No items in list.<br>Open via the bot to load a list.</div>';
+    sum.textContent = 'Empty list';
+    tog.style.display = 'none';
+    if (tg) tg.MainButton.hide();
+    return;
+  }
+
+  let html = '', count = 0, total = 0;
+
+  items.forEach((it, i) => {
+    const lt = it.on ? it.p * it.q : 0;
+    if (it.on) { count++; total += lt; }
+
+    html += `<div class="item ${it.on ? '' : 'off'}">
+      <div class="check ${it.on ? 'on' : ''}" onclick="toggle(${i})"></div>
+      <div class="info">
+        <div class="name">${esc(it.n)}</div>
+        <div class="unit-price">$${it.p.toFixed(2)}${it.q > 1 ? ' × ' + it.q : ''}</div>
+      </div>
+      <div class="qty">
+        <button onclick="qtyDelta(${i},-1)">−</button>
+        <span class="val">${it.q}</span>
+        <button onclick="qtyDelta(${i},1)">+</button>
+      </div>
+      <div class="line-total">$${lt.toFixed(2)}</div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+  sum.textContent = `${count} of ${items.length} items · $${total.toFixed(2)}`;
+
+  const allOn = items.every(it => it.on);
+  tog.textContent = allOn ? 'Deselect all' : 'Select all';
+
+  // Telegram MainButton
+  if (tg) {
+    if (count > 0) {
+      tg.MainButton.setText(`Approve · $${total.toFixed(2)}`);
+      tg.MainButton.show();
+    } else {
+      tg.MainButton.hide();
     }
   }
+
+  // Fallback button text
+  const fb = document.getElementById('fallbackApprove');
+  if (fb) fb.textContent = count > 0 ? `Approve · $${total.toFixed(2)}` : 'Nothing selected';
+}
+
+// ── Actions ────────────────────────────────────────────
+function toggle(i) {
+  items[i].on = !items[i].on;
+  if (tg) tg.HapticFeedback?.impactOccurred('light');
+  render();
+}
+
+function qtyDelta(i, d) {
+  const nq = items[i].q + d;
+  if (nq >= 1 && nq <= 20) {
+    items[i].q = nq;
+    if (tg) tg.HapticFeedback?.impactOccurred('light');
+    render();
+  }
+}
+
+function toggleAll() {
+  const allOn = items.every(it => it.on);
+  items.forEach(it => it.on = !allOn);
+  if (tg) tg.HapticFeedback?.impactOccurred('medium');
+  render();
+}
+
+function approve() {
+  const approved = items.filter(it => it.on).map(it => ({ i: it.i, n: it.n, q: it.q, p: it.p }));
+  const payload = JSON.stringify({ ok: true, items: approved });
+
+  if (hasTg) {
+    tg.sendData(payload);
+  } else {
+    // Fallback: show data for testing
+    alert('Approval payload:\n' + payload);
+    console.log('Payload:', payload);
+  }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Wire up MainButton ─────────────────────────────────
+if (tg) {
+  tg.MainButton.onClick(approve);
+  tg.MainButton.color = tg.themeParams?.button_color || '#3390ec';
+  tg.MainButton.textColor = tg.themeParams?.button_text_color || '#fff';
+}
+
+render();
 </script>
 </body>
 </html>
