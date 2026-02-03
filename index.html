@@ -148,13 +148,14 @@ const tg = window.Telegram?.WebApp;
 const hasTg = !!(tg && tg.initData);
 const BOT = 'Manolo_Assistant_bot';
 
-if (tg) {
+if (hasTg) {
   tg.ready();
   tg.expand();
   tg.BackButton.show();
   tg.BackButton.onClick(() => tg.close());
 } else {
   document.body.classList.add('no-tg');
+  if (tg) tg.ready();
 }
 
 // ── Parse items from URL ──────────────────────────────
@@ -218,7 +219,7 @@ function render() {
   const allOn = items.every(it => it.on && it.q > 0);
   tog.textContent = allOn ? 'Deselect all' : 'Select all';
 
-  if (tg) {
+  if (hasTg) {
     if (count > 0) {
       tg.MainButton.setText(`Approve · $${total.toFixed(2)}`);
       tg.MainButton.show();
@@ -347,7 +348,7 @@ function esc(s) {
 }
 
 // ── Wire up MainButton ─────────────────────────────────
-if (tg) {
+if (hasTg) {
   tg.MainButton.onClick(approve);
   tg.MainButton.color = tg.themeParams?.button_color || '#3390ec';
   tg.MainButton.textColor = tg.themeParams?.button_text_color || '#fff';
