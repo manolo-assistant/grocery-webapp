@@ -180,23 +180,41 @@ function approve() {
   const code = 'GA:' + approved.map(a => a.q===1 ? a.i : a.i+'x'+a.q).join(',') + '=$' + total.toFixed(2);
 
   // Try sendData first — if it works, webapp closes instantly
+  const debug = [];
+  debug.push('tg=' + !!tg);
+  debug.push('initData=' + !!(tg && tg.initData));
+  debug.push('initData.len=' + (tg?.initData?.length || 0));
+  debug.push('platform=' + (tg?.platform || 'none'));
+  debug.push('version=' + (tg?.version || 'none'));
+
   if (tg && tg.initData) {
     try {
+      debug.push('calling sendData...');
       tg.sendData(code);
+      debug.push('sendData returned (app should close)');
       // If still here after 1s, sendData didn't close the app → fallback
-      setTimeout(() => showCopyScreen(code), 1000);
+      setTimeout(() => showCopyScreen(code, debug.join('\n')), 1000);
       return;
-    } catch(e) {}
+    } catch(e) {
+      debug.push('sendData ERROR: ' + e.message);
+    }
+  } else {
+    debug.push('skipped sendData (no initData)');
   }
 
   // Fallback: copy screen
-  showCopyScreen(code);
+  showCopyScreen(code, debug.join('\n'));
 }
 
-function showCopyScreen(code) {
+function showCopyScreen(code, debugInfo) {
   document.getElementById('codeBox').value = code;
   document.getElementById('copyScreen').classList.add('show');
-  document.getElementById('copyStatus').textContent = 'Tap the code to select it, or use the button';
+  if (debugInfo) {
+    document.getElementById('copyStatus').innerHTML =
+      '<pre style="text-align:left;font-size:0.7em;background:var(--tg-theme-secondary-bg-color,#f5f5f5);'
+      + 'padding:8px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;margin-top:8px;">'
+      + debugInfo + '</pre>';
+  }
   setTimeout(() => { const b = document.getElementById('codeBox'); b.focus(); b.select(); }, 200);
 }
 
