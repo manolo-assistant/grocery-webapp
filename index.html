@@ -267,28 +267,49 @@ function haptic(style) {
 function approve() {
   const approved = items
     .filter(it => it.on && it.q > 0)
-    .map(it => ({ i: it.i, n: it.n, p: it.p, q: it.q }));
+    .map(it => ({ i: it.i, q: it.q }));
 
   if (!approved.length) return;
 
-  const total = approved.reduce((s, it) => s + it.p * it.q, 0);
-  const payload = JSON.stringify({
-    ok: true,
-    items: approved,
-    total: +total.toFixed(2)
-  });
+  const total = approved.reduce((s, it) => {
+    const orig = items.find(o => o.i === it.i);
+    return s + (orig ? orig.p * it.q : 0);
+  }, 0);
 
+  // Compact code: GA:id×qty,id×qty,...=$total
+  const code = 'GA:' + approved.map(a => a.q === 1 ? a.i : a.i + 'x' + a.q).join(',')
+    + '=$' + total.toFixed(2);
+
+  // Try sendData first (works with keyboard/menu buttons)
   if (tg) {
-    try {
-      tg.sendData(payload); // closes webapp, sends web_app_data to bot
-    } catch(e) {
-      // Fallback: show code to copy
-      prompt('Copy this and paste in chat:', payload);
-    }
-  } else {
-    console.log('Payload:', payload);
-    alert('Approval:\n' + payload);
+    try { tg.sendData(code); return; } catch(e) {}
   }
+
+  // Fallback: copy to clipboard
+  navigator.clipboard.writeText(code).then(() => {
+    haptic('success');
+    showToast('✅ Copied! Paste in chat to confirm.');
+    setTimeout(() => { if (tg) tg.close(); }, 1500);
+  }).catch(() => {
+    // Double fallback: show as selectable text
+    showToast('Copy this and paste in chat:\n' + code, true);
+  });
+}
+
+function showToast(msg, persistent) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:16px;right:16px;padding:16px;border-radius:12px;'
+      + 'background:var(--tg-theme-button-color,#3390ec);color:var(--tg-theme-button-text-color,#fff);'
+      + 'font-size:0.95em;text-align:center;z-index:99;white-space:pre-wrap;word-break:break-all;'
+      + 'box-shadow:0 4px 12px rgba(0,0,0,0.2);';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  if (!persistent) setTimeout(() => t.style.display = 'none', 3000);
 }
 
 function esc(s) {
