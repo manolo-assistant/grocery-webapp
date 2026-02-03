@@ -179,9 +179,33 @@ function approve() {
   const total = approved.reduce((s,it) => s + it.p * it.q, 0);
   const code = 'GA:' + approved.map(a => a.q===1 ? a.i : a.i+'x'+a.q).join(',') + '=$' + total.toFixed(2);
 
-  // sendData closes the app but loses data for inline buttons — skip it
-  // Go straight to copy screen
-  showCopyScreen(code);
+  // Detect launch context
+  const isInline = !!(tg?.initDataUnsafe?.query_id);
+  const hasInit = !!(tg?.initData);
+  const debug = [
+    'tg=' + !!tg,
+    'initData=' + hasInit,
+    'initData.len=' + (tg?.initData?.length || 0),
+    'query_id=' + (tg?.initDataUnsafe?.query_id || 'none'),
+    'platform=' + (tg?.platform || 'none'),
+    'version=' + (tg?.version || 'none'),
+    'isInline=' + isInline
+  ];
+
+  // Keyboard button → sendData works
+  if (hasInit && !isInline) {
+    debug.push('MODE: keyboard → sendData');
+    try {
+      tg.sendData(code);
+      return; // app closes
+    } catch(e) {
+      debug.push('sendData ERROR: ' + e.message);
+    }
+  } else {
+    debug.push('MODE: inline/browser → copy screen');
+  }
+
+  showCopyScreen(code, debug.join('\n'));
 }
 
 function showCopyScreen(code, debugInfo) {
