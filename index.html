@@ -18,25 +18,20 @@ body {
 }
 
 .header {
-  position: sticky;
-  top: 0;
+  position: sticky; top: 0;
   background: var(--tg-theme-bg-color, #fff);
   padding: 16px;
   border-bottom: 1px solid rgba(128,128,128,0.15);
   z-index: 10;
 }
-
 .header h1 { font-size: 1.25em; }
-
 .header .summary {
   font-size: 0.85em;
   color: var(--tg-theme-hint-color, #999);
   margin-top: 4px;
 }
-
 .toggle-all {
-  display: inline-block;
-  margin-top: 8px;
+  display: inline-block; margin-top: 8px;
   font-size: 0.8em;
   color: var(--tg-theme-link-color, #3390ec);
   cursor: pointer;
@@ -46,15 +41,12 @@ body {
 .items { padding: 4px 0; }
 
 .item {
-  display: flex;
-  align-items: center;
-  padding: 10px 16px;
-  gap: 10px;
+  display: flex; align-items: center;
+  padding: 10px 16px; gap: 10px;
   border-bottom: 1px solid rgba(128,128,128,0.08);
   transition: opacity 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
-
 .item.off { opacity: 0.35; }
 
 .check {
@@ -62,25 +54,20 @@ body {
   border-radius: 50%;
   border: 2px solid var(--tg-theme-button-color, #3390ec);
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  cursor: pointer;
+  flex-shrink: 0; cursor: pointer;
   transition: background 0.15s, transform 0.1s;
 }
 .check:active { transform: scale(0.9); }
-.check.on {
-  background: var(--tg-theme-button-color, #3390ec);
-}
+.check.on { background: var(--tg-theme-button-color, #3390ec); }
 .check.on::after {
   content: '✓';
   color: var(--tg-theme-button-text-color, #fff);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13px; font-weight: 700;
 }
 
 .info { flex: 1; min-width: 0; }
 .info .name {
-  font-size: 0.9em;
-  line-height: 1.3;
+  font-size: 0.9em; line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -104,52 +91,40 @@ body {
   font-size: 15px; font-weight: 600;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: transform 0.1s;
+  transition: transform 0.1s, opacity 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 .qty button:active { transform: scale(0.9); }
+.qty button.dim { opacity: 0.3; }
 .qty .val {
-  min-width: 18px;
-  text-align: center;
-  font-weight: 600;
-  font-size: 0.9em;
+  min-width: 18px; text-align: center;
+  font-weight: 600; font-size: 0.9em;
 }
 
 .line-total {
-  font-weight: 600;
-  font-size: 0.9em;
-  min-width: 48px;
-  text-align: right;
-  flex-shrink: 0;
+  font-weight: 600; font-size: 0.9em;
+  min-width: 48px; text-align: right; flex-shrink: 0;
 }
 
 .empty {
-  text-align: center;
-  padding: 80px 20px;
+  text-align: center; padding: 80px 20px;
   color: var(--tg-theme-hint-color, #999);
   font-size: 1.1em;
 }
 
-/* Fallback approve button for non-Telegram contexts */
 .fallback-btn {
   display: none;
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
+  position: fixed; bottom: 0; left: 0; right: 0;
   padding: 12px 16px;
   background: var(--tg-theme-bg-color, #fff);
   border-top: 1px solid rgba(128,128,128,0.15);
   z-index: 20;
 }
 .fallback-btn button {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 10px;
+  width: 100%; padding: 14px; border: none; border-radius: 10px;
   background: var(--tg-theme-button-color, #3390ec);
   color: var(--tg-theme-button-text-color, #fff);
-  font-size: 1em;
-  font-weight: 600;
-  cursor: pointer;
+  font-size: 1em; font-weight: 600; cursor: pointer;
 }
 body.no-tg .fallback-btn { display: block; }
 </style>
@@ -171,6 +146,7 @@ body.no-tg .fallback-btn { display: block; }
 <script>
 const tg = window.Telegram?.WebApp;
 const hasTg = !!(tg && tg.initData);
+const BOT = 'Manolo_Assistant_bot';
 
 if (tg) {
   tg.ready();
@@ -183,6 +159,8 @@ if (tg) {
 
 // ── Parse items from URL ──────────────────────────────
 let items = [];
+let origQty = [];
+
 try {
   const d = new URLSearchParams(location.search).get('d');
   if (d) {
@@ -190,8 +168,9 @@ try {
     items = JSON.parse(json);
     items.forEach(it => {
       if (it.on === undefined) it.on = true;
-      if (!it.q || it.q < 1) it.q = 1;
+      if (!it.q || it.q < 0) it.q = 1;
     });
+    origQty = items.map(it => it.q);
   }
 } catch(e) {
   console.error('Parse error:', e);
@@ -214,31 +193,31 @@ function render() {
   let html = '', count = 0, total = 0;
 
   items.forEach((it, i) => {
-    const lt = it.on ? it.p * it.q : 0;
-    if (it.on) { count++; total += lt; }
+    const active = it.on && it.q > 0;
+    const lt = active ? it.p * it.q : 0;
+    if (active) { count++; total += lt; }
 
-    html += `<div class="item ${it.on ? '' : 'off'}">
-      <div class="check ${it.on ? 'on' : ''}" onclick="toggle(${i})"></div>
+    html += `<div class="item ${active ? '' : 'off'}">
+      <div class="check ${active ? 'on' : ''}" onclick="toggle(${i})"></div>
       <div class="info">
         <div class="name">${esc(it.n)}</div>
         <div class="unit-price">$${it.p.toFixed(2)}${it.q > 1 ? ' × ' + it.q : ''}</div>
       </div>
       <div class="qty">
-        <button onclick="qtyDelta(${i},-1)">−</button>
+        <button class="${it.q <= 0 ? 'dim' : ''}" onclick="qtyDelta(${i},-1)">−</button>
         <span class="val">${it.q}</span>
-        <button onclick="qtyDelta(${i},1)">+</button>
+        <button class="${it.q >= 20 ? 'dim' : ''}" onclick="qtyDelta(${i},1)">+</button>
       </div>
-      <div class="line-total">$${lt.toFixed(2)}</div>
+      <div class="line-total">${active ? '$' + lt.toFixed(2) : '—'}</div>
     </div>`;
   });
 
   el.innerHTML = html;
   sum.textContent = `${count} of ${items.length} items · $${total.toFixed(2)}`;
 
-  const allOn = items.every(it => it.on);
+  const allOn = items.every(it => it.on && it.q > 0);
   tog.textContent = allOn ? 'Deselect all' : 'Select all';
 
-  // Telegram MainButton
   if (tg) {
     if (count > 0) {
       tg.MainButton.setText(`Approve · $${total.toFixed(2)}`);
@@ -248,44 +227,66 @@ function render() {
     }
   }
 
-  // Fallback button text
   const fb = document.getElementById('fallbackApprove');
   if (fb) fb.textContent = count > 0 ? `Approve · $${total.toFixed(2)}` : 'Nothing selected';
 }
 
 // ── Actions ────────────────────────────────────────────
 function toggle(i) {
+  if (!items[i].on && items[i].q === 0) items[i].q = 1;
   items[i].on = !items[i].on;
-  if (tg) tg.HapticFeedback?.impactOccurred('light');
+  haptic('light');
   render();
 }
 
 function qtyDelta(i, d) {
   const nq = items[i].q + d;
-  if (nq >= 1 && nq <= 20) {
-    items[i].q = nq;
-    if (tg) tg.HapticFeedback?.impactOccurred('light');
-    render();
-  }
-}
-
-function toggleAll() {
-  const allOn = items.every(it => it.on);
-  items.forEach(it => it.on = !allOn);
-  if (tg) tg.HapticFeedback?.impactOccurred('medium');
+  if (nq < 0 || nq > 20) return;
+  items[i].q = nq;
+  if (nq === 0) items[i].on = false;
+  if (nq > 0 && !items[i].on) items[i].on = true;
+  haptic('light');
   render();
 }
 
+function toggleAll() {
+  const allOn = items.every(it => it.on && it.q > 0);
+  items.forEach(it => {
+    it.on = !allOn;
+    if (!allOn && it.q === 0) it.q = 1;
+  });
+  haptic('medium');
+  render();
+}
+
+function haptic(style) {
+  try { tg?.HapticFeedback?.impactOccurred(style); } catch(e) {}
+}
+
+// ── Approve ────────────────────────────────────────────
 function approve() {
-  const approved = items.filter(it => it.on).map(it => ({ i: it.i, n: it.n, q: it.q, p: it.p }));
-  const payload = JSON.stringify({ ok: true, items: approved });
+  // Build bitmask: 1 = keep, 0 = drop
+  const mask = items.map(it => (it.on && it.q > 0) ? '1' : '0').join('');
+
+  // Quantity changes vs original (only for kept items)
+  const qc = [];
+  items.forEach((it, idx) => {
+    if (it.on && it.q > 0 && it.q !== origQty[idx]) {
+      qc.push(idx + 'x' + it.q);
+    }
+  });
+
+  // Compact param: ga_<bitmask>[_<qty changes>]
+  // Allowed chars in /start param: A-Za-z0-9_-
+  let param = 'ga-' + mask;
+  if (qc.length) param += '-' + qc.join('-');
 
   if (hasTg) {
-    tg.sendData(payload);
+    // Deep link sends /start <param> to the bot
+    tg.openTelegramLink('https://t.me/' + BOT + '?start=' + param);
   } else {
-    // Fallback: show data for testing
-    alert('Approval payload:\n' + payload);
-    console.log('Payload:', payload);
+    console.log('Approval param:', param);
+    alert('Approval code:\n' + param);
   }
 }
 
