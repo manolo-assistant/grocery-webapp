@@ -264,8 +264,6 @@ function haptic(style) {
 }
 
 // ── Approve ────────────────────────────────────────────
-const WEBHOOK = 'https://ubuntu-4gb-hel1-1-1.taildf35a4.ts.net/grocery';
-
 function approve() {
   const approved = items
     .filter(it => it.on && it.q > 0)
@@ -274,43 +272,23 @@ function approve() {
   if (!approved.length) return;
 
   const total = approved.reduce((s, it) => s + it.p * it.q, 0);
-  const payload = { items: approved, total: +total.toFixed(2), ts: Date.now() };
-
-  // Show sending state
-  if (tg) {
-    tg.MainButton.setText('Sending…');
-    tg.MainButton.showProgress();
-  }
-
-  fetch(WEBHOOK, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (res.ok) {
-      if (tg) {
-        tg.MainButton.hideProgress();
-        tg.MainButton.setText('✅ Sent!');
-        haptic('success');
-        setTimeout(() => tg.close(), 800);
-      } else {
-        alert('Approved! ' + JSON.stringify(payload));
-      }
-    } else {
-      throw new Error(res.error || 'Server error');
-    }
-  })
-  .catch(err => {
-    if (tg) {
-      tg.MainButton.hideProgress();
-      tg.MainButton.setText('❌ Failed — tap to retry');
-      haptic('error');
-    } else {
-      alert('Error: ' + err.message);
-    }
+  const payload = JSON.stringify({
+    ok: true,
+    items: approved,
+    total: +total.toFixed(2)
   });
+
+  if (tg) {
+    try {
+      tg.sendData(payload); // closes webapp, sends web_app_data to bot
+    } catch(e) {
+      // Fallback: show code to copy
+      prompt('Copy this and paste in chat:', payload);
+    }
+  } else {
+    console.log('Payload:', payload);
+    alert('Approval:\n' + payload);
+  }
 }
 
 function esc(s) {
